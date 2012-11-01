@@ -75,6 +75,8 @@ states = {
 lsi = Classifier::LSI.new
 
 states.each do |key,value|
+  puts "Imported #{key} #{value[0]}"
+  puts "Imported #{key} #{value[1]}"
   lsi.add_item value[0], key
   lsi.add_item value[1], key
 end
@@ -84,8 +86,12 @@ b.start
 
   q.subscribe() do |msg|
     data = j.decode(msg[:payload])
+    
+    
+    
     state = lsi.classify(data["user_location"])
-    tweets.update({"_id" => data["_id"]], {"$set" => {"state" => state}})
+    
+    tweets.update({"_id" => data["_id"]}, {"$set" => {"state" => state}})
     puts data['tweet_id']+" "+state
   end
 
