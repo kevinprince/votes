@@ -20,7 +20,7 @@ b.start
       data = {
         'id' => obj["_id"],
         'tweet_id' => obj["id"],
-        'user_location' => obj["user"]["location"]
+        'user_location' => obj["user"]["location"],
         'time_zone' => obj["user"]["time_zone"]
       }
       q.publish(j.encode(data))

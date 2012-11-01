@@ -3,6 +3,12 @@ require 'active_support/json'
 require 'mongo'
 require 'stuff-classifier'
 
+j = ActiveSupport::JSON
+b = Bunny.new()
+
+db = Mongo::Connection.new("127.0.0.1", 27017).db("election")
+tweets = db.collection("tweets")
+
 states = {  
   :al => "AL Alabama",
   :ak => "AK Alaska",
@@ -69,6 +75,9 @@ cls = StuffClassifier::Bayes.new("Which State")
 
 states.each do |key, value|
   cls.train(key, value)
+  s = value.split
+  cls.train(key, s[0])
+  cls.train(key, s[1])
 end
 
 timezones = [
@@ -90,7 +99,11 @@ b.start
 
     unless (data['time_zone'].nil? || data['user_location'].nil?)
       if timezones.include? data['time_zone']
-        state = cls.classify(data['user_location'])
+        begin
+          state = cls.classify(data['user_location'])
+        rescue
+          state = 'XX'
+        end
       else
         state = 'XX'
       end
@@ -98,9 +111,9 @@ b.start
       state = 'XX'
     end
 
-    tweets.update({"_id" => data["_id"]}, {"$set" => {"state" => state}})
+    #tweets.update({"_id" => data["_id"]}, {"$set" => {"state" => state}})
 
-    puts data['tweet_id']+" "+state
+    puts "#{data['tweet_id']} - #{state}"
   end
 
 b.stop
