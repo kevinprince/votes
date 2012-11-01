@@ -1,4 +1,4 @@
-require 'classifier'
+require 'stuff-classifier'
 
 states = {  
   :al => "AL Alabama",
@@ -61,10 +61,10 @@ states = {
   :wi => "WI Wisconsin",
   :wy => "WY Wyoming"
 }
+cls = StuffClassifier::Bayes.new("Which State")
 
-lsi = Classifier::LSI.new
-
-states.each do |key,value|
-  puts "Imported #{key} #{value}"
-  lsi.add_item value, key
+states.each do |key, value|
+  cls.train(key, value)
 end
+
+puts cls.classify("London England")
