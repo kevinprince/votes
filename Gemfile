@@ -14,3 +14,7 @@ gem 'activesupport'
 gem 'redis'
 gem 'mongo'
 gem 'bson_ext'
+
+
+#Clasiffying stuff
+gem 'classifier'
