@@ -2,7 +2,7 @@ set :application, "thelab"
 
 server "votes.lab-cloud.net", :app
 
-set :repository, ""
+set :repository, "git@github.com:kevinprince/votes.git"
 set :branch, "master"
 set :scm, :git
 
