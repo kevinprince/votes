@@ -113,7 +113,6 @@ b.start
 
     #tweets.update({"_id" => data["_id"]}, {"$set" => {"state" => state}})
 
-    puts "#{data['tweet_id']} - #{state}"
   end
 
 b.stop

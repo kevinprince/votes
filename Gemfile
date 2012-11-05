@@ -15,4 +15,7 @@ gem 'redis'
 gem 'mongo'
 gem 'bson_ext'
 
-gem "stuff-classifier"
+#Clasiffying stuff
+gem 'stuff-classifier'
+gem 'fastercsv'
+gem 'babosa'
