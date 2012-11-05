@@ -16,7 +16,6 @@ gem 'mongo'
 gem 'bson_ext'
 
 #Clasiffying stuff
-gem 'stuff-classifier'
-gem 'fastercsv'
+gem 'bloomfilter'
 gem 'babosa'
 gem 'tire'
