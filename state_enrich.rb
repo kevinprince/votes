@@ -71,15 +71,6 @@ states = {
   :wy => "WY Wyoming"
 }
 
-cls = StuffClassifier::Bayes.new("Which State")
-
-states.each do |key, value|
-  cls.train(key, value)
-  s = value.split
-  cls.train(key, s[0])
-  cls.train(key, s[1])
-end
-
 timezones = [
   "Hawaii",
   "Alaska",

@@ -11,11 +11,11 @@ tweets = db.collection("tweets")
 b.start
 
   q = b.queue('state_enriching')
-  
+
     cursor = tweets.find()
-    
+
     obj = cursor.next_document
-    
+
     while obj
       data = {
         'id' => obj["_id"],
