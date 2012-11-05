@@ -2,7 +2,6 @@ require 'bunny'
 require 'active_support/json'
 require 'mongo'
 require 'stuff-classifier'
-require 'geocoder'
 
 j = ActiveSupport::JSON
 b = Bunny.new()
@@ -79,6 +78,7 @@ states.each do |key, value|
   s = value.split
   cls.train(key, s[0])
   cls.train(key, s[1])
+
 end
 
 timezones = [

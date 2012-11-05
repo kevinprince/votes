@@ -15,7 +15,6 @@ gem 'redis'
 gem 'mongo'
 gem 'bson_ext'
 
-
 #Clasiffying stuff
 gem 'stuff-classifier'
 gem 'fastercsv'
