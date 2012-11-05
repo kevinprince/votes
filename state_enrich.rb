@@ -1,8 +1,8 @@
 require 'bunny'
 require 'active_support/json'
 require 'mongo'
-require 'classifier'
-
+require 'stuff-classifier'
+require 'geocoder'
 
 j = ActiveSupport::JSON
 b = Bunny.new()
@@ -11,88 +11,109 @@ db = Mongo::Connection.new("127.0.0.1", 27017).db("election")
 tweets = db.collection("tweets")
 
 states = {  
-  "AL" => ["AL", "Alabama"],
-  "AK" => ["AK", "Alaska"],
-  "AS" => ["AS", "American Samoa"],
-  "AZ" => ["AZ", "Arizona"],
-  "AR" => ["AR", "Arkansas"],
-  "CA" => ["CA", "California"],
-  "CO" => ["CO", "Colorado"],
-  "CT" => ["CT", "Connecticut"],
-  "DE" => ["DE", "Delaware"],
-  "DC" => ["DC", "District of Columbia"],
-  "FM" => ["FM", "Fed. States of Micronesia"],
-  "FL" => ["FL", "Florida"],
-  "GA" => ["GA", "Georgia"],
-  "GU" => ["GU", "Guam"],
-  "HI" => ["HI", "Hawaii"],
-  "ID" => ["ID", "Idaho"],
-  "IL" => ["IL", "Illinois"],
-  "IN" => ["IN", "Indiana"],
-  "IA" => ["IA", "Iowa"],
-  "KS" => ["KS", "Kansas"],
-  "KY" => ["KY", "Kentucky"],
-  "LA" => ["LA", "Louisiana"],
-  "ME" => ["ME", "Maine"],
-  "MH" => ["MH", "Marshall Islands"],
-  "MD" => ["MD", "Maryland"],
-  "MA" => ["MA", "Massachusetts"],
-  "MI" => ["MI", "Michigan"],
-  "MN" => ["MN", "Minnesota"],
-  "MS" => ["MS", "Mississippi"],
-  "MO" => ["MO", "Missouri"],
-  "MT" => ["MT", "Montana"],
-  "NE" => ["NE", "Nebraska"],
-  "NV" => ["NV", "Nevada"],
-  "NH" => ["NH", "New Hampshire"],
-  "NJ" => ["NJ", "New Jersey"],
-  "NM" => ["NM", "New Mexico"],
-  "NY" => ["NY", "New York"],
-  "NC" => ["NC", "North Carolina"],
-  "ND" => ["ND", "North Dakota"],
-  "MP" => ["MP", "Northern Mariana Is."],
-  "OH" => ["OH", "Ohio"],
-  "OK" => ["OK", "Oklahoma"],
-  "OR" => ["OR", "Oregon"],
-  "PW" => ["PW", "Palau"],
-  "PA" => ["PA", "Pennsylvania"],
-  "PR" => ["PR", "Puerto Rico"],
-  "RI" => ["RI", "Rhode Island"],
-  "SC" => ["SC", "South Carolina"],
-  "SD" => ["SD", "South Dakota"],
-  "TN" => ["TN", "Tennessee"],
-  "TX" => ["TX", "Texas"],
-  "UT" => ["UT", "Utah"],
-  "VT" => ["VT", "Vermont"],
-  "VA" => ["VA", "Virginia"],
-  "VI" => ["VI", "Virgin Islands"],
-  "WA" => ["WA", "Washington"],
-  "WV" => ["WV", "West Virginia"],
-  "WI" => ["WI", "Wisconsin"],
-  "WY" => ["WY", "Wyoming"]
+  :al => "AL Alabama",
+  :ak => "AK Alaska",
+  :as => "AS American Samoa",
+  :az => "AZ Arizona",
+  :ar => "AR Arkansas",
+  :ca => "CA California",
+  :co => "CO Colorado",
+  :ct => "CT Connecticut",
+  :de => "DE Delaware",
+  :dc => "DC District of Columbia",
+  :fm => "FM Fed. States of Micronesia",
+  :fl => "FL Florida",
+  :ga => "GA Georgia",
+  :gu => "GU Guam",
+  :hi => "HI Hawaii",
+  :id => "ID Idaho",
+  :il => "IL Illinois",
+  :in => "IN Indiana",
+  :ia => "IA Iowa",
+  :ks => "KS Kansas",
+  :ky => "KY Kentucky",
+  :la => "LA Louisiana",
+  :me => "ME Maine",
+  :mh => "MH Marshall Islands",
+  :md => "MD Maryland",
+  :ma => "MA Massachusetts",
+  :mi => "MI Michigan",
+  :mn => "MN Minnesota",
+  :ms => "MS Mississippi",
+  :mo => "MO Missouri",
+  :mt => "MT Montana",
+  :ne => "NE Nebraska",
+  :nv => "NV Nevada",
+  :nh => "NH New Hampshire",
+  :nj => "NJ New Jersey",
+  :nm => "NM New Mexico",
+  :ny => "NY New York",
+  :nc => "NC North Carolina",
+  :nd => "ND North Dakota",
+  :mp => "MP Northern Mariana Is.",
+  :oh => "OH Ohio",
+  :ok => "OK Oklahoma",
+  :or => "OR Oregon",
+  :pw => "PW Palau",
+  :pa => "PA Pennsylvania",
+  :pr => "PR Puerto Rico",
+  :ri => "RI Rhode Island",
+  :sc => "SC South Carolina",
+  :sd => "SD South Dakota",
+  :tn => "TN Tennessee",
+  :tx => "TX Texas",
+  :ut => "UT Utah",
+  :vt => "VT Vermont",
+  :va => "VA Virginia",
+  :vi => "VI Virgin Islands",
+  :wa => "WA Washington",
+  :wv => "WV West Virginia",
+  :wi => "WI Wisconsin",
+  :wy => "WY Wyoming"
 }
 
-lsi = Classifier::LSI.new
+cls = StuffClassifier::Bayes.new("Which State")
 
-states.each do |key,value|
-  puts "Imported #{key} #{value[0]}"
-  puts "Imported #{key} #{value[1]}"
-  lsi.add_item value[0], key
-  lsi.add_item value[1], key
+states.each do |key, value|
+  cls.train(key, value)
+  s = value.split
+  cls.train(key, s[0])
+  cls.train(key, s[1])
 end
+
+timezones = [
+  "Hawaii",
+  "Alaska",
+  "Pacific Time (US & Canada)",
+  "Arizona",
+  "Mountain Time (US & Canada)",
+  "Central Time (US & Canada)",
+  "Eastern Time (US & Canada)",
+  "Indiana (East)"
+]
 
 b.start
   q = b.queue('state_enriching')
 
   q.subscribe() do |msg|
     data = j.decode(msg[:payload])
-    
-    
-    
-    state = lsi.classify(data["user_location"])
-    
+
+    unless (data['time_zone'].nil? || data['user_location'].nil?)
+      if timezones.include? data['time_zone']
+        begin
+          state = cls.classify(data['user_location'])
+        rescue
+          state = 'XX'
+        end
+      else
+        state = 'XX'
+      end
+    else
+      state = 'XX'
+    end
+
     tweets.update({"_id" => data["_id"]}, {"$set" => {"state" => state}})
-    puts data['tweet_id']+" "+state
+
   end
 
 b.stop

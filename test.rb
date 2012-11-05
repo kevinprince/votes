@@ -1,4 +1,6 @@
-require 'classifier'
+# encoding: utf-8
+require 'csv'
+require 'stuff-classifier'
 
 states = {  
   :al => "AL Alabama",
@@ -62,9 +64,68 @@ states = {
   :wy => "WY Wyoming"
 }
 
-lsi = Classifier::LSI.new
+timezones = [
+  "Hawaii",
+  "Alaska",
+  "Pacific Time (US & Canada)",
+  "Arizona",
+  "Mountain Time (US & Canada)",
+  "Central Time (US & Canada)",
+  "Eastern Time (US & Canada)",
+  "Indiana (East)"
+]
 
-states.each do |key,value|
-  puts "Imported #{key} #{value}"
-  lsi.add_item value, key
+test = [
+  "Iowa",
+  "Paw paw Michigan",
+  "World Wide",
+  "SC",
+  "Nashville",
+  "Houston, Texas",
+  "DC, MD, VA (DMV) WORLDWIDE",
+  "Omaha",
+  "SoCal, USA",
+  "Tampa,  Florida",
+  "Malibu Beach",
+  "Riverbanks Zoo",
+  "Mostly Boise",
+  "Music City, USA (Middle TN)",
+  "USA",
+  "Collingswood",
+  "Florida",
+  "North Carolina",
+  "Washington, DC",
+  "Western PA"
+]
+
+
+cls = StuffClassifier::Bayes.new("Which State")
+
+
+puts "Loading base data"
+states.each do |key, value|
+  cls.train(key, value)
+  s = value.split
+  cls.train(key, s[0])
+  cls.train(key, s[1])
+end
+
+@a = 0
+puts "Enriching with 200,000 cities"
+
+# CSV.foreach("us_cities_clean.csv") do |row|
+#   begin
+#       cls.train(row[1], "#{row[0]} #{row[1]}")
+#     rescue
+#       puts "opps"
+#     end
+#   @a +=1
+# end
+
+puts @a
+
+puts "Running test set"
+test.each do |location|
+   state = cls.classify(location)
+   puts "#{state} - #{location}"
 end

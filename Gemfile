@@ -17,4 +17,6 @@ gem 'bson_ext'
 
 
 #Clasiffying stuff
-gem 'classifier'
+gem 'stuff-classifier'
+gem 'fastercsv'
+gem 'babosa'
