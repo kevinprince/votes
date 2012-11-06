@@ -1,13 +1,12 @@
 require 'bunny'
 require 'mongo'
-require 'bloomfilter'
 require 'babosa'
 
-# j = ActiveSupport::JSON
-# b = Bunny.new()
-# 
-# db = Mongo::Connection.new("127.0.0.1", 27017).db("election")
-# tweets = db.collection("tweets")
+j = ActiveSupport::JSON
+b = Bunny.new()
+
+db = Mongo::Connection.new("127.0.0.1", 27017).db("election")
+tweets = db.collection("tweets")
 
 @states = {  
   :al => "AL, Alabama",
@@ -83,57 +82,51 @@ timezones = [
 ]
 
 @state_short = {}
-@state_long = {}
 
 @states.each do |key,value|
   @state_short[key] = value.split(',')[0].downcase.strip
-  @state_long[key] = value.split(',')[1].downcase.strip
 end
 
-bf = BloomFilter::Native.new(:size => 100, :hashes => 2, :seed => 1, :bucket => 3, :raise => false)
-bf.insert("test")
-
 def state_in_string(string)
-
   clean_string = string.to_slug.to_ascii.word_chars.to_s.downcase
+  
+  s = ''
+  
   clean_string.split(' ').each do |value|
     if @state_short.has_value?(value)
-      return @state_short.key(value)
-    elsif @state_long.has_value?(value)
-      return @state_long.key(value)
+      s = @state_short.key(value)
     else
-      return nil
+      s = nil
     end
   end
 
+  s
 end
 
-bf.include?("test")     # => true
 
-puts state_in_string("New York, NY").inspect
-puts state_in_string("Georgetown").inspect
-puts state_in_string("Oht io").inspect
-puts state_in_string("Jackson, TN").inspect
+b.start
+  q = b.queue('state_enriching')
+  q_geo = b.queue('to_geocode')
 
+  q.subscribe() do |msg|
+    data = j.decode(msg[:payload])
 
-# b.start
-#   q = b.queue('state_enriching')
-# 
-#   q.subscribe() do |msg|
-#     data = j.decode(msg[:payload])
-# 
-#     unless (data['time_zone'].nil? || data['user_location'].nil?)
-#       if timezones.include? data['time_zone']
-# 
-#       else
-#         state = 'XX'
-#       end
-#     else
-#       state = 'XX'
-#     end
-# 
-#     #tweets.update({"_id" => data["_id"]}, {"$set" => {"state" => state}})
-# 
-#   end
-# 
-# b.stop
+    unless (data['time_zone'].nil? || data['user_location'].nil?)
+      if timezones.include? data['time_zone']
+        state = state_in_string(data['user_location'])
+      else
+        state = 'XX'
+      end
+    else
+      state = 'XX'
+    end
+
+    if state !== nil
+      tweets.update({"_id" => data["_id"]}, {"$set" => {"state" => state}})
+    else
+      q_geo.publish(msg[:payload])
+    end
+
+  end
+
+b.stop

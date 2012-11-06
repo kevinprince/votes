@@ -16,6 +16,5 @@ gem 'mongo'
 gem 'bson_ext'
 
 #Clasiffying stuff
-gem 'bloomfilter'
 gem 'babosa'
 gem 'tire'
